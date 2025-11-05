@@ -8083,10 +8083,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1266482600}
     m_Modifications:
-    - target: {fileID: -5836552744715497169, guid: 123198176d852094ea04d248ba51bcb9, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 6a1143ee683302f4aa628c052723efc1, type: 2}
     - target: {fileID: -8679921383154817045, guid: fde7c797670172948a4083369e8c9aa8, type: 3}
       propertyPath: m_LocalScale.x
       value: 22.575298
@@ -8143,6 +8139,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: chair_big
       objectReference: {fileID: 0}
+    - target: {fileID: -5836552744715497169, guid: 123198176d852094ea04d248ba51bcb9, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 6a1143ee683302f4aa628c052723efc1, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -12053,10 +12053,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1266482600}
     m_Modifications:
-    - target: {fileID: 2869344807088711131, guid: 5294dac5f9aa4604890d12eca73b5837, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 6a1143ee683302f4aa628c052723efc1, type: 2}
     - target: {fileID: -8679921383154817045, guid: 3ff1d0ba05ea6ec4aa5d35d9610b37ca, type: 3}
       propertyPath: m_LocalScale.x
       value: 36.788
@@ -12113,6 +12109,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: better_table (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 2869344807088711131, guid: 5294dac5f9aa4604890d12eca73b5837, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 6a1143ee683302f4aa628c052723efc1, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -14505,6 +14505,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: bd66bada7d2b21345a9de0f92ec8c649, type: 3}
       propertyPath: m_Name
       value: smoothy_style_vase
+      objectReference: {fileID: 0}
+    - target: {fileID: 8209917960063653589, guid: bd66bada7d2b21345a9de0f92ec8c649, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.0329
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
