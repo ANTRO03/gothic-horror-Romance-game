@@ -16,7 +16,7 @@ public class ButlerBase : MonoBehaviour
 
     [Header("Buffs")]
     public bool strength;
-    public bool invincibility;
+    public int shield;
     public bool target;
 
     [Header("Debuff")]
@@ -45,18 +45,21 @@ public class ButlerBase : MonoBehaviour
 
     public void TakeDamage(int damageValue)
     {
-        if (!invincibility)
+        if (shield > 0)
         {
-            currentHealth = Mathf.Max(0, currentHealth - damageValue);
-            UpdateHealthUI();
-        }
-        else
-        {
-            invincibility = false;
-            Debug.Log($"{name}: Invincibility triggered, ignored damage.");
+            shield -= 1;
+            Debug.Log($"{name}: Shield absorbed the attack. Remaining shield: {shield}");
+            return;
         }
 
-        Debug.Log($"{name} current health: {currentHealth}");
+        currentHealth = Mathf.Max(0, currentHealth - damageValue);
+        UpdateHealthUI();
+        Debug.Log($"{name} took {damageValue} damage (now {currentHealth}/{maxHealth}).");
+
+        if (currentHealth <= 0)
+        {
+            Debug.Log($"{name} has been defeated.");
+        }
     }
 
     // ========================
@@ -88,18 +91,7 @@ public class ButlerBase : MonoBehaviour
         Debug.Log($"{name} Strength buff DISABLED.");
     }
 
-    // ---- Invincibility ----
-    public void SetInvincibilityTrue()
-    {
-        invincibility = true;
-        Debug.Log($"{name} Invincibility ENABLED.");
-    }
-
-    public void SetInvincibilityFalse()
-    {
-        invincibility = false;
-        Debug.Log($"{name} Invincibility DISABLED.");
-    }
+    
 
     // ---- Target ----
     public void SetTargetTrue()
@@ -128,6 +120,34 @@ public class ButlerBase : MonoBehaviour
     {
         if (mpBar != null)
             mpBar.value = currentMP;
+    }
+
+    public void GainMP(int amount)
+    {
+        if (amount <= 0) return;
+        int before = currentMP;
+        currentMP = Mathf.Min(maxMP, currentMP + amount);
+        // if you want to block MP gain while KO’d, uncomment:
+        // if (currentHealth <= 0) return;
+
+        // make sure the UI reflects the change
+        UpdateMPUI();
+
+        // optional: debug
+        // Debug.Log($"{name} gained {currentMP - before} MP ({currentMP}/{maxMP}).");
+    }
+
+    public void AddShield(int amount)
+    {
+        if (amount <= 0) return;
+        shield += amount;
+        Debug.Log($"{name} gained {amount} shield. Total shield: {shield}");
+    }
+
+    public void ClearShield()
+    {
+        shield = 0;
+        Debug.Log($"{name}'s shield removed.");
     }
 
 
