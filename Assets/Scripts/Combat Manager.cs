@@ -114,8 +114,8 @@ public class CombatManager : MonoBehaviour
     public void UpdateStageRoundUI()
     {
         if (stageText != null)
-            stageText.text = $"Stage: {stage}";
+            stageText.text = $"{stage}";
         if (roundText != null)
-            roundText.text = $"Round: {round}";
+            roundText.text = $"{round}";
     }
 }
