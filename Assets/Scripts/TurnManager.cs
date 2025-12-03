@@ -51,18 +51,27 @@ public class TurnManager : MonoBehaviour
     {
         if (CheckLoseAndRestart()) return;
 
-        TurnNumber++;
-        State = TurnState.PlayerTurn;
+    TurnNumber++;
+    State = TurnState.PlayerTurn;
 
-        OnPlayerTurnStarted?.Invoke();
-        OnTurnAdvanced?.Invoke();
+    OnPlayerTurnStarted?.Invoke();
+    OnTurnAdvanced?.Invoke();
 
-        // Allow the player to select cards
-        cardManager.SetPlayerInputEnabled(true);
+    // Allow the player to select cards
+    cardManager.SetPlayerInputEnabled(true);
 
-        // Draw for the turn
-        for (int i = 0; i < cardsPerTurn; i++)
-            cardManager.DrawCard();
+    // NEW: Try to deal a hand with at least one playable card.
+    bool dealtPlayable = cardManager.TryDealPlayableHand(cardsPerTurn);
+
+    // If there are NO playable cards in the deck at all, trigger a loss.
+    if (!dealtPlayable)
+    {
+        Debug.LogWarning("All remaining cards belong to dead party members. Triggering loss.");
+        // Reuse your existing restart logic:
+        int idx = UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(idx);
+        return;
+    }
     }
 
     public void EndPlayerTurn()

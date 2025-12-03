@@ -62,17 +62,24 @@ public class EnemyBase : MonoBehaviour
     public void TakeDamage(int damageValue)
     {
         if (!invincibility)
-        {
-            currentHealth = Mathf.Max(0, currentHealth - damageValue);
-            UpdateHealthUI();
-        }
-        else
-        {
-            invincibility = false; // one-hit ignore pattern
-            Debug.Log($"{name}: Invincibility triggered; damage ignored once.");
-        }
+    {
+        currentHealth = Mathf.Max(0, currentHealth - damageValue);
+        UpdateHealthUI();
+    }
+    else
+    {
+        invincibility = false; // one-hit ignore pattern
+        Debug.Log($"{name}: Invincibility triggered; damage ignored once.");
+        return; // we ignored the damage, so stop here
+    }
 
-        Debug.Log($"{name} current health: {currentHealth}");
+    Debug.Log($"{name} current health: {currentHealth}");
+
+    // if HP hits 0, kill the enemy
+    if (currentHealth <= 0)
+    {
+        OnDeath();
+    }
     }
 
     // --- Debuff ticks (call from TurnManager at start of enemy turn) ---
@@ -200,5 +207,19 @@ public class EnemyBase : MonoBehaviour
     {
         if (mpBar != null) mpBar.value = currentMP;
     }
+
+    private void OnDeath()
+{
+    Debug.Log($"{name} has died. Cleaning up and destroying enemy.");
+
+    // Hide any UI bars bound to this enemy
+    if (healthBar != null)
+        healthBar.gameObject.SetActive(false);
+
+    if (mpBar != null)
+        mpBar.gameObject.SetActive(false);
+
+    Destroy(gameObject);
+}
 }
 

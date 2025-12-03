@@ -597,6 +597,73 @@ public class CardManager : MonoBehaviour
     // ---------------- Round/Deck helpers used by TurnManager ----------------
     public bool IsDeckEmpty() => deck == null || deck.Count == 0;
 
+    // Any card in hand whose owner is alive?
+    public bool HandHasPlayableCard()
+    {
+        return playerHand.Any(c => c != null && IsOwnerAlive(c));
+    }
+
+    // Any card in DECK whose owner is alive?
+    public bool HasPlayableCardInDeck()
+    {
+        if (deck == null || deck.Count == 0) return false;
+        return deck.Any(c => c != null && IsOwnerAlive(c));
+    }
+
+    public bool NoPlayableCardsInDeck() => !HasPlayableCardInDeck();
+
+    // Return entire current hand back to the deck (NO MP gain), clear slots.
+    public void ReturnHandToDeck_NoMP()
+    {
+        var copy = new List<CardBase>(playerHand);
+        foreach (var c in copy)
+        {
+            if (c == null) continue;
+
+            FreeHandSlotFor(c);
+            playerHand.Remove(c);
+
+            if (!deck.Contains(c))
+                deck.Add(c);
+
+            c.gameObject.SetActive(false);
+        }
+
+        RefreshAllCardInteractivity();
+    }
+
+    // Try to deal a hand that has at least one playable card.
+    // Returns true if a playable hand was dealt,
+    // false if there are NO playable cards left in the deck at all.
+    public bool TryDealPlayableHand(int cardsToDraw)
+    {
+        // If there are no playable cards in the deck, tell caller so it can trigger a loss.
+        if (!HasPlayableCardInDeck())
+            return false;
+
+        const int maxRedraws = 5;
+
+        for (int attempt = 0; attempt < maxRedraws; attempt++)
+        {
+            // Clear any previous attempt’s hand without giving MP for returns.
+            ReturnHandToDeck_NoMP();
+
+            // Draw a fresh hand
+            for (int i = 0; i < cardsToDraw; i++)
+            {
+                DrawCard();
+            }
+
+            // If at least one card belongs to a living butler, we’re good.
+            if (HandHasPlayableCard())
+                return true;
+        }
+
+        // We know there ARE playable cards in deck, so reaching here should be basically impossible,
+        // but to avoid infinite loops we just accept the last hand.
+        return true;
+    }
+
     public void OnRoundStartReset(CombatManager cm)
     {
         try
