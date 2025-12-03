@@ -50,6 +50,11 @@ public class CardManager : MonoBehaviour
 
     private EnemyBase selectedEnemyTarget;
 
+    [Header("Ultimate Cards (one per Butler)")]
+    [SerializeField] private CardBase guardUltimateCard;
+    [SerializeField] private CardBase tailorUltimateCard;
+    [SerializeField] private CardBase chamberlainUltimateCard;
+
     private bool playerInputEnabled = true;
 
     private void Awake()
@@ -72,6 +77,10 @@ public class CardManager : MonoBehaviour
             confirmButton.interactable = false;
         }
 
+        if (guardUltimateCard) guardUltimateCard.gameObject.SetActive(false);
+        if (tailorUltimateCard) tailorUltimateCard.gameObject.SetActive(false);
+        if (chamberlainUltimateCard) chamberlainUltimateCard.gameObject.SetActive(false);
+
         RefreshAllCardInteractivity();
         Debug.Log("CardManager ready.");
 
@@ -83,6 +92,8 @@ public class CardManager : MonoBehaviour
         {
             selectedEnemyTarget = null;
         }
+
+        UpdateUltimateVisibility();
     }
 
     // ---------------- Selection ----------------
@@ -245,34 +256,44 @@ public class CardManager : MonoBehaviour
                 Debug.LogWarning($"Card '{card?.name}' error: {e.Message}");
             }
 
-            // Move played card → discard
-            if (playerHand.Contains(card)) playerHand.Remove(card);
-            if (!discardPile.Contains(card)) discardPile.Add(card);
+            bool isUlt = IsUltimateCard(card);
 
-            FreeHandSlotFor(card);
+            if (!isUlt)
+            {
+                // Normal card: move played card → discard
+                if (playerHand.Contains(card)) playerHand.Remove(card);
+                if (!discardPile.Contains(card)) discardPile.Add(card);
 
-            if (discardPilePoint != null)
-                card.transform.position = discardPilePoint.position;
+                FreeHandSlotFor(card);
 
+                if (discardPilePoint != null)
+                    card.transform.position = discardPilePoint.position;
+
+                card.gameObject.SetActive(false);
+            }
+            else
+            {
+                // Ultimate: consume MP and hide, but do NOT touch deck/hand/discard
+                OnUltimatePlayed(card);
+            }
+
+            // Clear selection label either way
             if (labelRTs != null && i >= 0 && i < labelRTs.Length && labelRTs[i] != null)
                 labelRTs[i].gameObject.SetActive(false);
 
             selected[i] = null;
-            card.gameObject.SetActive(false);
 
             if (perCardPause > 0f) yield return new WaitForSeconds(perCardPause);
             else yield return null;
         }
 
-        // 2) Return remaining (UNPLAYED) hand cards → deck
-        //    and grant MP to the corresponding butler equal to the card's ManaPoints.
+        // 2) Return remaining (UNPLAYED) hand cards → deck and grant MP
         var remaining = new List<CardBase>(playerHand);
         foreach (var c in remaining)
         {
             if (c == null) continue;
 
-            //NEW: grant MP to card owner when the card is recycled back to the deck
-            GrantMPForCardOwner(c);  // make sure this helper exists in the class
+            GrantMPForCardOwner(c);
 
             FreeHandSlotFor(c);
             if (deckReturnPoint != null) c.transform.position = deckReturnPoint.position;
@@ -283,7 +304,6 @@ public class CardManager : MonoBehaviour
 
         RefreshAllCardInteractivity();
 
-        // Hide confirm until next selection
         if (confirmButton != null) confirmButton.gameObject.SetActive(false);
 
         Debug.Log($"Selected cards resolved. Discard: {discardPile.Count}, Deck: {deck.Count}, Hand: {playerHand.Count}");
@@ -356,8 +376,42 @@ public class CardManager : MonoBehaviour
                 }
 
             case CardType.Unseam:
-                if (enemy != null) { Damage(enemy, baseDmg); enemy.bleed += 1; }
-                break;
+                {
+                    // ULTIMATE: Board-wide bleed detonation
+                    int totalBleed = 0;
+
+                    // Count bleed on all living enemies
+                    foreach (var e in combatManager.enemyStored)
+                    {
+                        if (e == null) continue;
+                        if (e.bleed > 0)
+                            totalBleed += Mathf.Max(0, e.bleed);
+                    }
+
+
+                    if (totalBleed <= 0)
+                    {
+                        Debug.Log("Unseam (ULT): No bleed stacks on the board.");
+                    }
+                    else
+                    {
+                        // Deal that much damage to all living enemies
+                        foreach (var e in AliveEnemies())
+                        {
+                            e.TakeDamage(totalBleed);
+                        }
+                        Debug.Log($"Unseam (ULT): Dealt {totalBleed} damage to all enemies, then cleared all bleed.");
+                    }
+
+                    // Clear ALL bleed stacks (allies + enemies)
+                    foreach (var e in combatManager.enemyStored)
+                    {
+                        if (e == null) continue;
+                        e.bleed = 0;
+                    }
+
+                    break;
+                }
 
             case CardType.Resolve:
                 {
@@ -413,8 +467,24 @@ public class CardManager : MonoBehaviour
                 }
 
             case CardType.Aegis:
-                
-                break;
+                {
+                    // ULTIMATE: Teamwide shield + Guard heal
+                    var allies = combatManager.EnumerateAllies();
+                    foreach (var a in allies)
+                    {
+                        if (a == null || a.currentHealth <= 0) continue;
+                        a.AddShield(1);
+                    }
+
+                    if (guard != null && guard.currentHealth > 0)
+                    {
+                        guard.Heal(3);
+                    }
+
+                    Debug.Log("Aegis (ULT): All allies gained 1 shield; Guard healed for 3.");
+                    break;
+                }
+
 
             case CardType.Denounce:
                 {
@@ -459,14 +529,32 @@ public class CardManager : MonoBehaviour
                     foreach (var a in allies)
                     {
                         a.strength = true;  // give Strength
-                        a.Heal(2);          // heal 2
+                        a.Heal(3);          // heal 3
                     }
                     Debug.Log("Patronage: Granted Strength to all allies and healed each for 2.");
                     break;
                 }
 
             case CardType.RoyalRepreve:
-                break;
+                {
+                    // ULTIMATE: Full-board cleanse of Bleed & Curse, plus big party heal
+                    var allies = combatManager.EnumerateAllies();
+                    foreach (var a in allies)
+                    {
+                        if (a == null) continue;
+
+                        // Clear party debuffs
+                        a.bleed = 0;
+                        a.curse = 0;
+
+                        // Heal each party member for 5
+                        if (a.currentHealth > 0)
+                            a.Heal(5);
+                    }
+
+                    Debug.Log("Royal Repreve (ULT): Cleared all Bleed & Curse and healed the party for 5.");
+                    break;
+                }
 
             default:
                 Debug.LogWarning($"Unhandled CardType '{card.type}'.");
@@ -792,6 +880,64 @@ public class CardManager : MonoBehaviour
             return 2;
         }
         return 0;
+    }
+
+    private void UpdateUltimateVisibility()
+{
+    if (combatManager == null) return;
+
+    UpdateUltimateForButler(combatManager.guard, guardUltimateCard);
+    UpdateUltimateForButler(combatManager.tailor, tailorUltimateCard);
+    UpdateUltimateForButler(combatManager.chamberlain, chamberlainUltimateCard);
+}
+
+    private void UpdateUltimateForButler(ButlerBase butler, CardBase ultCard)
+    {
+        if (ultCard == null) return;
+
+        bool shouldShow = butler != null
+            && butler.currentHealth > 0
+            && butler.currentMP >= butler.maxMP;
+
+        if (ultCard.gameObject.activeSelf != shouldShow)
+        {
+            ultCard.gameObject.SetActive(shouldShow);
+        }
+
+        if (shouldShow)
+        {
+            SetCardInteractable(ultCard, true);
+        }
+        else
+        {
+            SetCardInteractable(ultCard, false);
+        }
+    }
+
+    private bool IsUltimateCard(CardBase card)
+    {
+        return card != null &&
+               (card == guardUltimateCard ||
+                card == tailorUltimateCard ||
+                card == chamberlainUltimateCard);
+    }
+
+    private void OnUltimatePlayed(CardBase card)
+    {
+        if (card == null || combatManager == null) return;
+
+        // Consume MP from the card's owner
+        var owner = ButlerFor(card.owner);
+        if (owner != null)
+        {
+            owner.ConsumeAllMP();
+        }
+
+        // Hide the ult card for now; UpdateUltimateVisibility() will show it again
+        // once MP is refilled back to max.
+        card.gameObject.SetActive(false);
+
+        Debug.Log($"Ultimate {card.type} used by {owner?.name}. MP reset.");
     }
 
 

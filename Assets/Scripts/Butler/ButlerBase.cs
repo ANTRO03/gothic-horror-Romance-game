@@ -150,5 +150,12 @@ public class ButlerBase : MonoBehaviour
         Debug.Log($"{name}'s shield removed.");
     }
 
+    public void ConsumeAllMP()
+    {
+        if (currentMP <= 0) return;
+        currentMP = 0;
+        UpdateMPUI();
+        Debug.Log($"{name} consumed all MP (now {currentMP}/{maxMP}).");
+    }
 
 }
