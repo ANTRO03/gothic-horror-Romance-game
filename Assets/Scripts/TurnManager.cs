@@ -35,11 +35,18 @@ public class TurnManager : MonoBehaviour
 
     [SerializeField] private int roundsPerStage = 3;
 
+    [Header("Environment Roots")]
+    [SerializeField] private GameObject hallwayRoot;
+    [SerializeField] private GameObject gardenRoot;
+
     private void Start()
     {
         // Initial wave setup (if not already spawned elsewhere)
         combatManager.SpawnWave(3);
         combatManager.UpdateStageRoundUI();
+
+        ApplyEnvironmentForStage(combatManager.stage);
+
         BeginPlayerTurn();
 
         // Clean initial UI state: show cards, hide all status canvases (via menuManager)
@@ -186,6 +193,8 @@ public class TurnManager : MonoBehaviour
             // Heavy reset ONLY at stage start
             cardManager.OnRoundStartReset(combatManager);
 
+             ApplyEnvironmentForStage(combatManager.stage);
+
             combatManager.SpawnWave(3);
             combatManager.UpdateStageRoundUI();
         }
@@ -249,5 +258,23 @@ public class TurnManager : MonoBehaviour
         HideCanvasMM(statusScreenCanvas);
         HideCanvasMM(allyHealthCanvas);
         HideCanvasMM(enemyHealthCanvas);
+    }
+
+    private void ApplyEnvironmentForStage(int stage)
+    {
+        if (hallwayRoot == null || gardenRoot == null)
+        {
+            Debug.LogWarning("TurnManager: environment roots not assigned.");
+            return;
+        }
+
+        // Example rule: odd stages = Hallway, even stages = Garden
+        bool useHallway = (stage % 2 == 1);
+
+        hallwayRoot.SetActive(useHallway);
+        gardenRoot.SetActive(!useHallway);
+
+        Debug.Log($"Environment: Stage {stage} → " +
+                  (useHallway ? "Hallway ON, Garden OFF" : "Garden ON, Hallway OFF"));
     }
 }
